@@ -21,6 +21,8 @@ info:
     For teams, some minor differences are highlighted below depending on your team type.
     If you aren't sure of your team type, you can generally assume it to be
     <strong>Standard</strong>.
+  contact:
+    url: https://api.cyphre.com
 host: yourteam.cyphre.com
 schemes:
   - https
@@ -40,6 +42,9 @@ paths:
       summary: List all members in this team
       description: |
         Produces a list of all the team members.
+      operationId: getMembers
+      produces:
+        - application/json
       tags:
         - Team
       security:
@@ -79,45 +84,49 @@ paths:
         is billable. Setting `false` or not setting this value will assume
         a starter (free) account and will not be billable. Starter accounts are
         generally created with 2GB of storage, which cannot be changed.
+      operationId: createMember
+      produces:
+        - application/json
       tags:
         - Team
       security:
         - api_key: []
       parameters:
-        - name: username
-          in: formData
-          type: string
-          description: The username (email address) of the member.
+        - name: user
+          in: body
           required: true
-        - name: firstname
-          in: formData
-          type: string
-          description: The user's first name..
-          required: true
-        - name: lastname
-          in: formData
-          type: string
-          description: The user's last name.
-          required: true
-        - name: password
-          in: formData
-          type: string
-          description: |
-            A password for this user. If this is not supplied, one will be
-            generated and returned with the response.
-        - name: quota
-          in: formData
-          type: integer
-          format: int64
-          description: |
-            The user's quota size in GigaBytes. Applies to <strong>Standard</strong>
-            teams only.
-        - name: plus
-          in: formData
-          type: boolean
-          description: |
-            Designates this user as a plus or starter account. Applies to
-            <strong>Vendor</strong> teams only.
+          schema:
+            type: object
+            required:
+              - username
+              - firstname
+              - lastname
+            properties:
+              username:
+                description: The username (email address) of the member.
+                type: string
+              firstname:
+                type: string
+                description: The user's first name.
+              lastname:
+                type: string
+                description: The user's last name.
+              password:
+                type: string
+                description: |
+                  A password for this user. If this is not supplied, one will be
+                  generated and returned with the response.
+              quota:
+                type: integer
+                format: int64
+                description: |
+                  The user's quota size in GigaBytes. Applies to <strong>Standard</strong>
+                  teams only.
+              plus:
+                type: boolean
+                description: |
+                  Designates this user as a plus or starter account. Applies to
+                  <strong>Vendor</strong> teams only.
       responses:
         200:
           description: An array containing the information for the new user.
@@ -144,6 +153,9 @@ paths:
       summary: Retrieve information for a single user
       description: |
         Same as a full member listing, but for a single user.
+      operationId: getMember
+      produces:
+        - application/json
       tags:
         - Team
       security:
@@ -191,6 +203,9 @@ paths:
         attribute to `true` in order to upgrade a starter (free) account to a plus
         (billable) account. You cannot downgrade an account that has been upgraded
         to plus.
+      operationId: updateMember
+      produces:
+        - application/json
       tags:
         - Team
       security:
@@ -201,33 +216,34 @@ paths:
           type: string
           description: The username (email address) of the member.
           required: true
-        - name: firstname
-          in: formData
-          type: string
-          description: The user's first name..
-        - name: lastname
-          in: formData
-          type: string
-          description: The user's last name.
-        - name: enabled
-          in: formData
-          type: boolean
-          description: |
-            Allows disabling of a user, which keeps them from accessing their account
-            and storage.
-        - name: quota
-          in: formData
-          type: integer
-          format: int64
-          description: |
-            The user's quota size in GigaBytes. Applies to <strong>Standard</strong>
-            teams only.
-        - name: plus
-          in: formData
-          type: boolean
-          description: |
-            Designates this user as a plus or starter account. Applies to
-            <strong>Vendor</strong> teams only.
+        - name: user
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              firstname:
+                type: string
+                description: The user's first name.
+              lastname:
+                type: string
+                description: The user's last name.
+              enabled:
+                type: boolean
+                description: |
+                  Allows disabling of a user, which keeps them from accessing their account
+                  and storage.
+              quota:
+                type: integer
+                format: int64
+                description: |
+                  The user's quota size in GigaBytes. Applies to <strong>Standard</strong>
+                  teams only.
+              plus:
+                type: boolean
+                description: |
+                  Designates this user as a plus or starter account. Applies to
+                  <strong>Vendor</strong> teams only.
       responses:
         200:
           description: An array with a single member.
@@ -256,7 +272,10 @@ paths:
         This cannot be undone. This will delete not only the data base
         information for this user, but all of the files on the storage
         server. If you only want to disable access, then it is better
-        to just set enable=false in the PATCH method.
+        to just set enabled=false in the PATCH method.
+      operationId: deleteMember
+      produces:
+        - application/json
       tags:
         - Team
       security:

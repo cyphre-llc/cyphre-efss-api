@@ -1,0 +1,367 @@
+swagger: '2.0'
+info:
+  title: Cyphre EFSS API
+  version: 1.0.0
+  description: |
+    The API below allows you to access and manipulate various aspects of the Cyphre
+    EFSS via a RESTful API. Every request requires an API Key, which can be obtained
+    from your administration panel (for Team API) or your user settings (for User API).
+    
+    The API Key must be passed as a header, which looks like:
+    
+        Authorization: Token token="4c3bce7e-dfab-4a7b-8cc0-53a1f63fba15"
+    
+    It can be added to the curl examples by including this in the command line:
+    
+        -H 'Authorization: Token token="4c3bce7e-dfab-4a7b-8cc0-53a1f63fba15"'
+    
+    In the examples, you will see `home.cyphre.com` as the host. However, you will need
+    to replace this with the host for your team instead.
+    
+    For teams, some minor differences are highlighted below depending on your team type.
+    If you aren't sure of your team type, you can generally assume it to be
+    <strong>Standard</strong>.
+host: vera.dev1.cyphre.com:1443
+schemes:
+  - https
+basePath: /api/v1
+produces:
+  - application/json
+consumes:
+  - application/json
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: token
+paths:
+  /team/members:
+    get:
+      summary: List all members in this team
+      description: |
+        Produces a list of all the team members.
+      tags:
+        - Team
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: An array of members
+          schema:
+            type: object
+            properties:
+              response:
+                type: object
+                properties:
+                  members:
+                    $ref: '#/definitions/members'
+              success:
+                $ref: '#/definitions/status'
+        default:
+          description: Error condition
+          schema:
+            $ref: '#/definitions/error'
+    post:
+      summary: Create a new member in the team
+      description: |
+        Provides a way to create a new member in the team. The username
+        must not exist. If you do not supply a password, one will be
+        generated for you and returned in the response.
+        
+        <strong>Standard:</strong> The quota can be set and is measured in
+        GigaBytes. If no quota is set, or quota is 0 or null, then the user
+        will be given the maximum allowed (generally 1TB). Note, all users
+        will be billed to your account.
+        
+        <strong>Vendor:</strong> The quota cannot be set, but instead you can
+        choose to set `plus` to `true` to distinguish between a free or paid
+        account. Setting `true` gives the maximum quota and assumes the user
+        is billable. Setting `false` or not setting this value will assume
+        a starter (free) account and will not be billable. Starter accounts are
+        generally created with 2GB of storage, which cannot be changed.
+      tags:
+        - Team
+      security:
+        - api_key: []
+      parameters:
+        - name: username
+          in: formData
+          type: string
+          description: The username (email address) of the member.
+          required: true
+        - name: firstname
+          in: formData
+          type: string
+          description: The user's first name..
+          required: true
+        - name: lastname
+          in: formData
+          type: string
+          description: The user's last name.
+          required: true
+        - name: password
+          in: formData
+          type: string
+          description: |
+            A password for this user. If this is not supplied, one will be
+            generated and returned with the response.
+        - name: quota
+          in: formData
+          type: integer
+          format: int64
+          description: |
+            The user's quota size in GigaBytes. Applies to <strong>Standard</strong>
+            teams only.
+        - name: plus
+          in: formData
+          type: boolean
+          description: |
+            Designates this user as a plus or starter account. Applies to
+            <strong>Vendor</strong> teams only.
+      responses:
+        200:
+          description: An array containing the information for the new user.
+          schema:
+            type: object
+            properties:
+              response:
+                type: object
+                properties:
+                  members:
+                    $ref: '#/definitions/members'
+              success:
+                $ref: '#/definitions/status'
+        409:
+          description: User already exists.
+          schema:
+            $ref: '#/definitions/error'
+        default:
+          description: Error condition.
+          schema:
+            $ref: '#/definitions/error'
+  /team/members/{username}:
+    get:
+      summary: Retrieve information for a single user
+      description: |
+        Same as a full member listing, but for a single user.
+      tags:
+        - Team
+      security:
+        - api_key: []
+      parameters:
+        - name: username
+          in: path
+          type: string
+          description: The username (email address) of the member.
+          required: true
+      responses:
+        200:
+          description: An array with a single member.
+          schema:
+            type: object
+            properties:
+              response:
+                type: object
+                properties:
+                  members:
+                    $ref: '#/definitions/members'
+              success:
+                $ref: '#/definitions/status'
+        404:
+          description: User does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        default:
+          description: Unexpected error.
+          schema:
+            $ref: '#/definitions/error'
+
+    patch:
+      summary: Change attributes of a user
+      description: |
+        Allows updating editable values of a user. You can supply one or more of the
+        new values for a user. Any values not supplied in the request will not be
+        changed.
+        
+        <strong>Standard:</strong> The quota can be set and is measured in
+        GigaBytes. If quota is set to 0, then the user will be given the maximum
+        allowed (generally 1TB). Note, all users will be billed to your account.
+
+        <strong>Vendor:</strong> The quota cannot be set. You can change the `plus`
+        attribute to `true` in order to upgrade a starter (free) account to a plus
+        (billable) account. You cannot downgrade an account that has been upgraded
+        to plus.
+      tags:
+        - Team
+      security:
+        - api_key: []
+      parameters:
+        - name: username
+          in: path
+          type: string
+          description: The username (email address) of the member.
+          required: true
+        - name: firstname
+          in: formData
+          type: string
+          description: The user's first name..
+        - name: lastname
+          in: formData
+          type: string
+          description: The user's last name.
+        - name: enabled
+          in: formData
+          type: boolean
+          description: |
+            Allows disabling of a user, which keeps them from accessing their account
+            and storage.
+        - name: quota
+          in: formData
+          type: integer
+          format: int64
+          description: |
+            The user's quota size in GigaBytes. Applies to <strong>Standard</strong>
+            teams only.
+        - name: plus
+          in: formData
+          type: boolean
+          description: |
+            Designates this user as a plus or starter account. Applies to
+            <strong>Vendor</strong> teams only.
+      responses:
+        200:
+          description: An array with a single member.
+          schema:
+            type: object
+            properties:
+              response:
+                type: object
+                properties:
+                  members:
+                    $ref: '#/definitions/members'
+              success:
+                $ref: '#/definitions/status'
+        404:
+          description: User does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        default:
+          description: Unexpected error.
+          schema:
+            $ref: '#/definitions/error'
+
+    delete:
+      summary: Delete this user and all of their data
+      description: |
+        This cannot be undone. This will delete not only the data base
+        information for this user, but all of the files on the storage
+        server. If you only want to disable access, then it is better
+        to just set enable=false in the PATCH method.
+      tags:
+        - Team
+      security:
+        - api_key: []
+      parameters:
+        - name: username
+          in: path
+          type: string
+          description: The username (email address) of the member.
+          required: true
+      responses:
+        200:
+          description: An array with a single member.
+          schema:
+            type: object
+            properties:
+              response:
+                type: object
+                properties:
+                  members:
+                    $ref: '#/definitions/members'
+              success:
+                $ref: '#/definitions/status'
+        404:
+          description: User does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        default:
+          description: Unexpected error.
+          schema:
+            $ref: '#/definitions/error'
+definitions:
+  status:
+    type: boolean
+    description: Whether this request was successful or not
+  member:
+    type: object
+    properties:
+      username:
+        type: string
+        description: Unique username (email address) for this member.
+      firstname:
+        type: string
+        description: First name of this user.
+      lastname:
+        type: string
+        description: Last name of this user.
+      usage:
+        type: integer
+        format: int64
+        description: The user's storage usage, in bytes.
+      quota:
+        type: integer
+        format: int64
+        description: The user's maximum storage allocation (0 or null is unlimited).
+      recovery:
+        type: boolean
+        description: |
+          Whether this user has opted in or out of admin recovery. If this is false
+          and the user forgets their password, their files cannot be recovered by
+          the team master password.
+      enabled:
+        type: boolean
+        description: |
+          Whether this account is enabled. If disabled, the member cannot login at
+          all. However, for teams, this does not mean the user's account is not
+          being billed.
+      owner:
+        type: boolean
+        description: If true, this user has owner access to this team.
+      admin:
+        type: boolean
+        description: If true, this user has admin access to this team.
+      created_at:
+        type: string
+        format: date-time
+        description: When this member was created.
+      lastlogin:
+        type: string
+        format: date-time
+        description: The last time this user logged in.
+      is_plus:
+        type: boolean
+        description: |
+          <strong>Vendor</strong>: This flag shows whether this user is considered
+          a billable account.
+          
+          <strong>Standard</strong>: Does not apply and will not show in output.
+      deleted:
+        type: boolean
+        description: |
+          Returned as true when the DELETE method is called on a user. This field
+          only exists in this single case.
+  members:
+    type: array
+    items:
+      $ref: '#/definitions/member'
+  error:
+    type: object
+    properties:
+      response:
+        type: object
+        properties:
+          error:
+            type: string
+            description: Description of the error.
+      success:
+        $ref: '#/definitions/status'

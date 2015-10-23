@@ -21,7 +21,7 @@ info:
     For teams, some minor differences are highlighted below depending on your team type.
     If you aren't sure of your team type, you can generally assume it to be
     <strong>Standard</strong>.
-host: vera.dev1.cyphre.com:1443
+host: yourteam.cyphre.com
 schemes:
   - https
 basePath: /api/v1

@@ -9,16 +9,9 @@ info:
     
     The API Key must be passed as a header, which looks like:
     
-        Authorization: Token token="4c3bce7e-dfab-4a7b-8cc0-53a1f63fba15"
+        Authorization: Token token=4c3bce7e-dfab-4a7b-8cc0-53a1f63fba15
     
-    It can be added to the curl examples by including this in the command line:
-    
-        -H 'Authorization: Token token="4c3bce7e-dfab-4a7b-8cc0-53a1f63fba15"'
-    
-    In the examples, you will see `home.cyphre.com` as the host. However, you will need
-    to replace this with the host for your team instead.
-    
-    For teams, some minor differences are highlighted below depending on your team type.
+    For teams, some minor differences are highlighted depending on your team type.
     If you aren't sure of your team type, you can generally assume it to be
     <strong>Standard</strong>.
   contact:

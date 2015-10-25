@@ -30,7 +30,7 @@
 
   <script type="text/javascript">
     $(function () {
-      var url = "/cyphre-efss-api.yaml";
+      var url = "https://api.cyphre.com/cyphre-efss-api.yaml";
 
       // Pre load translate...
       if(window.SwaggerTranslator) {
@@ -60,6 +60,7 @@
           });
 
           addApiKeyAuthorization();
+          setApiHost();
         },
         onFailure: function(data) {
           log("Unable to Load SwaggerUI");
@@ -72,13 +73,21 @@
       function addApiKeyAuthorization(){
         var key = encodeURIComponent($('#input_apiKey')[0].value);
         if(key && key.trim() != "") {
-            var apiKeyAuth = new SwaggerClient.ApiKeyAuthorization("api_key", key, "query");
-            window.swaggerUi.api.clientAuthorizations.add("api_key", apiKeyAuth);
+            var apiKeyAuth = new SwaggerClient.ApiKeyAuthorization("Authorization", 'Token token=' + key, "header");
+            window.swaggerUi.api.clientAuthorizations.add("Authorization", apiKeyAuth);
             log("added key " + key);
         }
       }
 
+      function setApiHost(){
+        var key = encodeURIComponent($('#input_team')[0].value);
+        if(key && key.trim() != "") {
+          window.swaggerUi.api.setHost(key);
+        }
+      }
+
       $('#input_apiKey').change(addApiKeyAuthorization);
+      $('#input_team').change(setApiHost);
 
       // if you have an apiKey you would like to pre-populate on the page for demonstration purposes...
       /*
@@ -102,7 +111,8 @@
   <div class="swagger-ui-wrap">
     <a id="logo" href="https://cyphre.com">Cyphre</a>
     <form id='api_selector'>
-      <div class='input'><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
+      <div class='input'><input placeholder="yourteam.cyphre.com" id="input_team" name="team" type="text"/></div>
+      <div class='input' style="display: none"><input placeholder="http://example.com/api" id="input_baseUrl" name="baseUrl" type="text"/></div>
       <div class='input'><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text"/></div>
       <div class='input'><a id="explore" href="#" data-sw-translate>Explore</a></div>
     </form>

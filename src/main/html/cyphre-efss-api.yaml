@@ -14,8 +14,6 @@ info:
     For teams, some minor differences are highlighted depending on your team type.
     If you aren't sure of your team type, you can generally assume it to be
     <strong>Standard</strong>.
-    
-    Get the <a href="https://api.cyphre.com/cyphre-efss-api.yaml">Cyphre EFSS API Spec File</a>
   contact:
     url: https://api.cyphre.com
     name: Ben Collins

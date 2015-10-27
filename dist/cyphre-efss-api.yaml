@@ -18,6 +18,9 @@ info:
     url: https://api.cyphre.com
     name: Ben Collins
     email: ben@cyphre.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
 host: yourteam.cyphre.com
 schemes:
   - https

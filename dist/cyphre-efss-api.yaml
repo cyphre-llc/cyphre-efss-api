@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  title: Cyphre EFSS API
+  title: Cyphre EFSS/CXcE API
   version: 1.0.0
   description: |
     The API below allows you to access and manipulate various aspects of the Cyphre
@@ -14,6 +14,10 @@ info:
     For teams, some minor differences are highlighted depending on your team type.
     If you aren't sure of your team type, you can generally assume it to be
     <strong>Standard</strong>.
+
+    The <strong>CXcE API</strong> reflects a separate API that may or may not be
+    accessible to your team. The API Key for this service is not the same as that
+    of the EFSS API.
   contact:
     url: https://api.cyphre.com
     name: Ben Collins
@@ -24,7 +28,7 @@ info:
 host: yourteam.cyphre.com
 schemes:
   - https
-basePath: /api/v1
+basePath: /
 produces:
   - application/json
 consumes:
@@ -35,7 +39,7 @@ securityDefinitions:
     in: header
     name: token
 paths:
-  /team/members:
+  /api/v1/team/members:
     get:
       summary: List all members in this team
       description: |
@@ -142,7 +146,7 @@ paths:
           description: Error condition.
           schema:
             $ref: '#/definitions/error'
-  /team/members/{username}:
+  /api/v1/team/members/{username}:
     get:
       summary: Retrieve information for a single user
       description: |
@@ -295,10 +299,337 @@ paths:
           description: Unexpected error.
           schema:
             $ref: '#/definitions/error'
+  /job:
+    get:
+      summary: List jobs that have changed status.
+      description: |
+        Returns an array of jobs that have changed with a specified or implied
+        timeframe.
+        
+        If no since parameter is passed, this is assumed to be any jobs whose
+        updated_at is > 30 minutes from before the request was made. Otherwise, the
+        timestamp in since is used in place of 30-minutes-ago.
+      operationId: getJobs
+      produces:
+        - application/json
+      tags:
+        - Transcoding Job
+      responses:
+        200:
+          description: An array of jobs
+          schema:
+            type: array
+            $ref: '#/definitions/jobs'
+        default:
+          description: Error condition
+      parameters:
+      - name: since
+        description: |
+          Timestamp used to determine when the last time this end-point was called so
+          as to only return jobs that have changed (i.e. their updated_at is > this
+          parameter).
+          
+          The expected usage is that you will call this end-point, which returns
+          an array of jobs whos updated_at value is in ascending order. The last
+          job's updated_at value in this returned array would be used as the
+          since parameter for the next call.
+          
+          In this manner, this end-point would give all results, and no duplicates.
+        in: query
+        type: string
+        format: date-time
+        allowEmptyValue: true
+      - name: limit
+        description: |
+          The maximum number of jobs to return. This useful to limit the number
+          of updates in a single call.
+        in: query
+        type: integer
+        format: int32
+        allowEmptyValue: true
+        minimum: 0
+    post:
+      summary: Create a new job for processing
+      description: |
+        Create a new job for processing by the transcoding engine.
+      operationId: createJob
+      produces:
+        - application/json
+      consumes:
+        - multipart/form-data
+      tags:
+        - Transcoding Job
+      parameters:
+      - name: file_name
+        type: string
+        in: formData
+        required: true
+        description: Name of the file once uploaded to destination cloud service.
+      - name: file
+        type: file
+        in: formData
+        required: true
+        description: The actual file data being transcoded.
+      - name: fmt_in
+        type: string
+        in: formData
+        required: true
+        enum: [is_mjpeg, is_mp4, is_mov]
+        description: |
+          Format of the input file. This can be one of is_mjpeg (Motion JPEG),
+          is_mp4 (MPEG-4), or is_mov (Quicktime).
+      - name: fmt_out
+        type: string
+        in: formData
+        required: true
+        enum: [to_mp4]
+        description: |
+          Format to be transcoded to. Currently, only to_mp4 is supported.
+      - name: destination_folder
+        type: string
+        in: formData
+        required: true
+        description: |
+          CSP specific string representing the destination folder for the resulting
+          transcoded file.
+      - name: destination_type
+        type: string
+        in: formData
+        required: true
+        enum: [for_gdrive, for_onedrive]
+        description: |
+          Destination CSP. Currently supported are for_gdrive (Google Drive) and
+          for_onedrive (Microsoft OneDrive).
+      - name: destination_credentials
+        type: string
+        in: formData
+        required: true
+        description: |
+          Credentials to be passed to the specified CSP. These are catered to the CSP.
+      responses:
+        200:
+          description: The new job
+          schema:
+            type: object
+            $ref: '#/definitions/job'
+        default:
+          description: Error condition
+  /job/{jobid}:
+    get:
+      summary: Get status of specific job
+      description: |
+        Returns the status fields for the specified Job ID (the id in the response
+        data).
+      operationId: getJob
+      produces:
+        - application/json
+      tags:
+        - Transcoding Job
+      parameters:
+        - name: jobid
+          in: path
+          type: string
+          description: The Job ID
+          required: true
+      responses:
+        200:
+          description: A single job description object
+          schema:
+            type: object
+            $ref: '#/definitions/job'
+        default:
+          description: Error condition
+    delete:
+      summary: Delete a specific job
+      description: Delete a specified Job ID (the id in the response data).
+      operationId: deleteJob
+      produces:
+        - application/json
+      tags:
+        - Transcoding Job
+      parameters:
+        - name: jobid
+          in: path
+          type: string
+          description: The Job ID
+          required: true
+      responses:
+        200:
+          description: A single job description object
+          schema:
+            type: object
+            $ref: '#/definitions/job'
+        default:
+          description: Error condition
+    patch:
+      summary: Update information regarding a specific job
+      description: |
+        Allows for recovering from certain errors. E.g., changing the fmt_in and/or
+        the fmt_out to correct transcoding failures. Also, updating destination
+        fields to correct for upload failures.
+        
+        Only those fields passed will be changed. Empty or non-existent values will
+        not be changed.
+        
+        If the update is successful, then the status is automatically changed to
+        queued.
+      operationId: updateJob
+      produces:
+        - application/json
+      consumes:
+        - multipart/form-data
+      tags:
+        - Transcoding Job
+      parameters:
+      - name: jobid
+        in: path
+        type: string
+        description: The Job ID
+        required: true
+      - name: file_name
+        type: string
+        in: formData
+        required: false
+        description: Name of the file once uploaded to destination cloud service.
+      - name: fmt_in
+        type: string
+        in: formData
+        required: false
+        enum: [is_mjpeg, is_mp4, is_mov]
+        description: |
+          Format of the input file. This can be one of is_mjpeg (Motion JPEG),
+          is_mp4 (MPEG-4), or is_mov (Quicktime).
+      - name: fmt_out
+        type: string
+        in: formData
+        required: false
+        enum: [to_mp4]
+        description: |
+          Format to be transcoded to. Currently, only to_mp4 is supported.
+      - name: destination_folder
+        type: string
+        in: formData
+        required: false
+        description: |
+          CSP specific string representing the destination folder for the resulting
+          transcoded file.
+      - name: destination_type
+        type: string
+        in: formData
+        required: false
+        enum: [for_gdrive, for_onedrive]
+        description: |
+          Destination CSP. Currently supported are for_gdrive (Google Drive) and
+          for_onedrive (Microsoft OneDrive).
+      - name: destination_credentials
+        type: string
+        in: formData
+        required: false
+        description: |
+          Credentials to be passed to the specified CSP. These are catered to the CSP.
+      responses:
+        200:
+          description: A single job description object
+          schema:
+            type: object
+            $ref: '#/definitions/job'
+        default:
+          description: Error condition
 definitions:
   status:
     type: boolean
     description: Whether this request was successful or not
+  job:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+        description: Unique ID for this job.
+      file_name:
+        type: string
+        description: Name of the file once uploaded to destination cloud service.
+      fmt_in:
+        type: string
+        enum: [is_mjpeg, is_mp4, is_mov]
+        description: |
+          Format of the input file. This can be one of is_mjpeg (Motion JPEG),
+          is_mp4 (MPEG-4), or is_mov (Quicktime).
+      fmt_out:
+        type: string
+        enum: [to_mp4]
+        description: |
+          Format to be transcoded to. Currently, only to_mp4 is supported.
+      destination_folder:
+        type: string
+        description: |
+          CSP specific string representing the destination folder for the resulting
+          transcoded file.
+      destination_type:
+        type: string
+        enum: [for_gdrive, for_onedrive]
+        description: |
+          Destination CSP. Currently supported are for_gdrive (Google Drive) and
+          for_onedrive (Microsoft OneDrive).
+      created_at:
+        type: string
+        format: date-time
+        description: When this job was created.
+      updates_at:
+        type: string
+        format: date-time
+        description: The last time this job was modified.
+      file_size_in:
+        type: integer
+        format: int64
+        description: Size of the original file uploaded.
+      file_size_out:
+        type: integer
+        format: int64
+        description: Size of the file after transcoding (null if not processed yet).
+      frames:
+        type: integer
+        format: int64
+        description: |
+          For is_mjpeg, number of frames detected when parsing input to determine the
+          source duration for transcoding (null if not processed yet).
+      processing_start:
+        type: string
+        format: date-time
+        description: Time showing when this job began processing for transcoding.
+      processing_end:
+        type: string
+        format: date-time
+        description: Time showing when this job completed processing for transcoding.
+      upload_start:
+        type: string
+        format: date-time
+        description: Time showing when this job began uploading to the CSP.
+      upload_end:
+        type: string
+        format: date-time
+        description: Time showing when this job completed uploading to the CSP.
+      status:
+        type: string
+        enum: [queued, xc_start, xc_failed, upload_pending, upload_failed, completed]
+        description: |
+          Current status of this job. May be one of queued (awaiting processing),
+          xc_start (transcoding started), xc_failed (transcoding incurred an error),
+          upload_pending (transcoding successful, awaiting upload to CSP),
+          upload_failed (error uploading to CSP), and completed (job has completed full
+          processing and no further work to be done).
+          
+          These states are in order of expectation. The failed states will not be
+          processed any further unless the error is cleared with an update to the
+          job, which would place the status back to queued (for xc_failed) or
+          upload_pending (for upload_failed).
+      info:
+        type: string
+        description: Extra info that may apply to failure states.
+  jobs:
+    type: array
+    items:
+      $ref: '#/definitions/job'
   member:
     type: object
     properties:
